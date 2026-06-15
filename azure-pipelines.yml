@@ -44,3 +44,10 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'Eat_Experience-$(Build.SourceBranchName)-$(Build.BuildId)'
     publishLocation: 'Container'
+- task: AzureRmWebAppDeployment@5
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Azure-Vinto'
+    appType: 'webApp'
+    WebAppName: 'vinto-carripollo-api-dev'
+    packageForLinux: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
