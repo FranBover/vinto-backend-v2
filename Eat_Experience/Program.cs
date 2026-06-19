@@ -170,16 +170,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("https://vinto-frontend-dev-ffbbb4e2fzcfd5h9.centralus-01.azurewebsites.net")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials(); // requerido por SignalR
-        });
-
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:5173")
+            policy.WithOrigins(
+                      "http://localhost:5173",
+                      "https://vinto-frontend-dev-ffbbb4e2fzcfd5h9.centralus-01.azurewebsites.net")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials(); // requerido por SignalR
