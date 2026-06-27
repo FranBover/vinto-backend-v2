@@ -191,6 +191,8 @@ var globalExceptionLogger = app.Services
     .GetRequiredService<ILoggerFactory>()
     .CreateLogger("GlobalExceptionHandler");
 
+var env = app.Environment;
+
 app.Use(async (context, next) =>
 {
     try
@@ -216,15 +218,21 @@ app.Use(async (context, next) =>
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json; charset=utf-8";
 
-        // TEMPORAL (debug): exponer "detalle" y "tipo" en el cuerpo ayuda a diagnosticar, pero
-        // puede filtrar detalles internos. ANTES DE PRODUCCI�N hay que gatear estos campos a
-        // entornos no-prod (p. ej. solo incluirlos si app.Environment.IsDevelopment()/IsStaging()).
-        var payload = JsonSerializer.Serialize(new
-        {
-            error = ex.Message,
-            detalle = ex.InnerException?.Message,
-            tipo = ex.GetType().Name
-        });
+        // El detalle ("detalle" y "tipo") ya est� gateado a entornos NO productivos: en producci�n
+        // solo exponemos un mensaje gen�rico para no filtrar detalles internos; fuera de producci�n
+        // incluimos error/detalle/tipo para facilitar el diagn�stico (la excepci�n completa siempre
+        // queda en el log del servidor v�a el LogError de arriba).
+        var payload = env.IsProduction()
+            ? JsonSerializer.Serialize(new
+            {
+                error = "Error interno del servidor"
+            })
+            : JsonSerializer.Serialize(new
+            {
+                error = ex.Message,
+                detalle = ex.InnerException?.Message,
+                tipo = ex.GetType().Name
+            });
 
         await context.Response.WriteAsync(payload);
     }
