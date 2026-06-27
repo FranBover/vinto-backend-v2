@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.FileProviders;
 using System.Text;
+using System.Text.Json;
 using Vinto.Api.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
@@ -182,6 +183,52 @@ builder.Services.AddCors(options =>
 
 
 var app = builder.Build();
+
+// Middleware GLOBAL de manejo de excepciones.
+// Va lo m�s arriba posible del pipeline para envolver TODO lo dem�s en un try/catch
+// y as� ninguna excepci�n escape con cuerpo vac�o (lo que adem�s rompe CORS en el navegador).
+var globalExceptionLogger = app.Services
+    .GetRequiredService<ILoggerFactory>()
+    .CreateLogger("GlobalExceptionHandler");
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        // Logueamos la excepci�n COMPLETA (incluye stack trace e InnerException via ToString()).
+        globalExceptionLogger.LogError(ex, "Excepci�n no controlada en {Method} {Path}: {Excepcion}",
+            context.Request.Method, context.Request.Path, ex.ToString());
+
+        // Si la respuesta ya empez� a enviarse no podemos reescribir headers/cuerpo: relanzamos.
+        if (context.Response.HasStarted)
+        {
+            throw;
+        }
+
+        // IMPORTANTE (CORS): no llamamos a Response.Clear() para no borrar los headers que
+        // UseCors ya aplic� aguas abajo (Access-Control-Allow-Origin, etc.). Como este middleware
+        // est� por ENCIMA de UseCors en el pipeline, dichos headers ya est�n en la respuesta cuando
+        // la excepci�n vuelve hasta ac�, y al no limpiarlos el navegador puede leer este 500.
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json; charset=utf-8";
+
+        // TEMPORAL (debug): exponer "detalle" y "tipo" en el cuerpo ayuda a diagnosticar, pero
+        // puede filtrar detalles internos. ANTES DE PRODUCCI�N hay que gatear estos campos a
+        // entornos no-prod (p. ej. solo incluirlos si app.Environment.IsDevelopment()/IsStaging()).
+        var payload = JsonSerializer.Serialize(new
+        {
+            error = ex.Message,
+            detalle = ex.InnerException?.Message,
+            tipo = ex.GetType().Name
+        });
+
+        await context.Response.WriteAsync(payload);
+    }
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

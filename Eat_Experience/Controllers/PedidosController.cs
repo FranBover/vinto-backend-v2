@@ -17,15 +17,18 @@ namespace Vinto.Api.Controllers
         private readonly IPedidoService _pedidoService;
         private readonly AppDbContext _context;
         private readonly IMercadoPagoService _mercadoPagoService;
+        private readonly ILogger<PedidosController> _logger;
 
         public PedidosController(
             IPedidoService pedidoService,
             AppDbContext context,
-            IMercadoPagoService mercadoPagoService)
+            IMercadoPagoService mercadoPagoService,
+            ILogger<PedidosController> logger)
         {
             _pedidoService = pedidoService;
             _context = context;
             _mercadoPagoService = mercadoPagoService;
+            _logger = logger;
         }
 
 
@@ -201,9 +204,13 @@ namespace Vinto.Api.Controllers
             }
             catch (Exception ex)
             {
+                // Logueamos la excepci�n COMPLETA (stack trace + InnerException) antes de devolver el 500
+                // para poder diagnosticar; el middleware global tambi�n la captura, pero ac� dejamos el
+                // contexto del endpoint (slug del local) en el log.
+                _logger.LogError(ex, "Error al crear pedido p�blico para el local con slug {Slug}", slug);
                 var mensaje = ex.InnerException?.Message ?? ex.Message;
                 return StatusCode(500, $"Error al crear el pedido: {mensaje}");
-                
+
             }
         }
 
