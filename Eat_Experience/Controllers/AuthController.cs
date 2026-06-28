@@ -81,6 +81,9 @@ namespace Vinto.Api.Controllers
             if (result == PasswordVerificationResult.Failed)
                 return Unauthorized("Email o contraseña incorrectos.");
 
+            if (!admin.EsActivo)
+                return Unauthorized("Tu cuenta está desactivada. Contactá al administrador.");
+
             var token = GenerateToken(admin);
             return Ok(new { token });
         }
