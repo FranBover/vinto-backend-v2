@@ -170,18 +170,6 @@ namespace Vinto.Api.Controllers
             return Ok(new { advertencias });
         }
 
-        [Authorize]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] Pedido pedido)
-        {
-            if (id != pedido.Id)
-                return BadRequest();
-
-            await _pedidoService.Actualizar(pedido);
-            return NoContent();
-        }
-
-
         [HttpPost("/api/public/locales/{slug}/pedidos")]
         public async Task<IActionResult> CrearPedidoPublico(string slug, [FromBody] PedidoPublicCreateRequestDTO request)
         {
