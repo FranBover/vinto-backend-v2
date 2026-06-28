@@ -1,51 +1,36 @@
-# ASP.NET Core 9 — build and publish Vinto.Api (opción 2: sin .sln)
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
-
 trigger:
   branches:
     include:
       - main
 
 pool:
-  vmImage: 'windows-2022'
+  vmImage: 'ubuntu-latest'
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
 steps:
 - task: UseDotNet@2
-  displayName: 'Use .NET Core sdk 9.x'
+  displayName: 'Usar .NET SDK 9.x'
   inputs:
     packageType: 'sdk'
     version: '9.x'
 
-- task: NuGetToolInstaller@1
+- task: DotNetCoreCLI@2
+  displayName: 'Publish Vinto.Api'
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: '**/Vinto.Api.csproj'
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/publish'
+    zipAfterPublish: true
 
-- task: NuGetCommand@2
+- task: AzureWebApp@1
+  displayName: 'Deploy a App Service Linux'
   inputs:
-    command: 'restore'
-    restoreSolution: '$(solution)'
-    feedsToUse: 'config'
-    nugetConfigPath: 'nuget.config'
-
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Eat_Experience"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'Eat_Experience-$(Build.SourceBranchName)-$(Build.BuildId)'
-    publishLocation: 'Container'
-- task: AzureRmWebAppDeployment@5
-  inputs:
-    ConnectionType: 'AzureRM'
     azureSubscription: 'Azure-Vinto'
-    appType: 'webApp'
-    WebAppName: 'vinto-carripollo-api-dev'
-    packageForLinux: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
+    appType: 'webAppLinux'
+    appName: 'vinto-carripollo-api-dev-linux'
+    package: '$(Build.ArtifactStagingDirectory)/publish/*.zip'
+    runtimeStack: 'DOTNETCORE|9.0'
+    startUpCommand: 'dotnet Vinto.Api.dll'
