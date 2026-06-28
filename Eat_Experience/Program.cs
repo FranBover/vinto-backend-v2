@@ -269,25 +269,30 @@ app.MapHub<PedidosHub>("/hubs/pedidos");
 app.MapControllers();
 
 
-using (var scope = app.Services.CreateScope())
+// Seed de administrador de prueba: solo en Development. En prod/staging crear�a un admin
+// con credenciales p�blicas conocidas, as� que lo gateamos al entorno de desarrollo.
+if (app.Environment.IsDevelopment())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    if (!context.Administradores.Any())
+    using (var scope = app.Services.CreateScope())
     {
-        var passwordHasher = new PasswordHasher<Administrador>();
-        var admin = new Administrador
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (!context.Administradores.Any())
         {
-            Nombre = "Admin Prueba",
-            Email = "admin@ejemplo.com",
-            Telefono = "3511234567",
-            Direccion = "C�rdoba, Argentina"
-        };
+            var passwordHasher = new PasswordHasher<Administrador>();
+            var admin = new Administrador
+            {
+                Nombre = "Admin Prueba",
+                Email = "admin@ejemplo.com",
+                Telefono = "3511234567",
+                Direccion = "C�rdoba, Argentina"
+            };
 
-        admin.PasswordHash = passwordHasher.HashPassword(null, "123456");
+            admin.PasswordHash = passwordHasher.HashPassword(null, "123456");
 
-        context.Administradores.Add(admin);
-        context.SaveChanges();
+            context.Administradores.Add(admin);
+            context.SaveChanges();
+        }
     }
 }
 
