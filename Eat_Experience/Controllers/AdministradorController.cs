@@ -20,45 +20,18 @@ namespace Vinto.Api.Controllers
             _service = service;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Get()
-        {
-            var admins = await _service.ObtenerTodos();
-            return Ok(admins);
-        }
-
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
+            var adminIdClaim = User.FindFirst("adminId")?.Value;
+            if (adminIdClaim == null || !int.TryParse(adminIdClaim, out int tokenAdminId) || tokenAdminId != id)
+                return Forbid();
+
             var admin = await _service.ObtenerPorId(id);
             if (admin == null)
                 return NotFound();
 
-            return Ok(admin);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Administrador administrador)
-        {
-            await _service.Crear(administrador);
-            return CreatedAtAction(nameof(Get), new { id = administrador.Id }, administrador);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] Administrador administrador)
-        {
-            if (id != administrador.Id)
-                return BadRequest();
-
-            await _service.Actualizar(administrador);
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await _service.Eliminar(id);
-            return NoContent();
+            return Ok(MapToResponseDTO(admin));
         }
 
         [HttpPatch("{id}/local")]
@@ -86,7 +59,39 @@ namespace Vinto.Api.Controllers
             if (dto.CostoEnvio.HasValue) admin.CostoEnvio = dto.CostoEnvio.Value;
 
             await _service.Actualizar(admin);
-            return Ok(admin);
+            return Ok(MapToResponseDTO(admin));
+        }
+
+        // Mapeo manual entidad -> DTO de respuesta, omitiendo campos sensibles
+        // (PasswordHash y tokens/credenciales de MercadoPago).
+        private static AdministradorResponseDTO MapToResponseDTO(Administrador admin)
+        {
+            return new AdministradorResponseDTO
+            {
+                Id = admin.Id,
+                Nombre = admin.Nombre,
+                Email = admin.Email,
+                NombreLocal = admin.NombreLocal,
+                Direccion = admin.Direccion,
+                Telefono = admin.Telefono,
+                LinkWhatsapp = admin.LinkWhatsapp,
+                LogoUrl = admin.LogoUrl,
+                EsActivo = admin.EsActivo,
+                FechaRegistro = admin.FechaRegistro,
+                UltimoAcceso = admin.UltimoAcceso,
+                PlanSuscripcion = admin.PlanSuscripcion,
+                DominioPersonalizado = admin.DominioPersonalizado,
+                AliasTransferencia = admin.AliasTransferencia,
+                TitularCuenta = admin.TitularCuenta,
+                Horarios = admin.Horarios,
+                UbicacionUrl = admin.UbicacionUrl,
+                ZonaEnvio = admin.ZonaEnvio,
+                CostoEnvio = admin.CostoEnvio,
+                StockBajoAlerta = admin.StockBajoAlerta,
+                AutoDeshabilitarSinStock = admin.AutoDeshabilitarSinStock,
+                MercadoPagoTokenExpiresAt = admin.MercadoPagoTokenExpiresAt,
+                MercadoPagoConectado = admin.MercadoPagoConectado
+            };
         }
     }
 }
