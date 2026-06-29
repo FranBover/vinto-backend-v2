@@ -118,8 +118,17 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IEncryptionHelper, EncryptionHelper>();
 builder.Services.AddSingleton<IMercadoPagoSignatureValidator, MercadoPagoSignatureValidator>();
 
-// Storage
-builder.Services.AddScoped<IStorageProvider, LocalStorageProvider>();
+// Storage: elegimos el provider seg�n config. "AzureBlob" usa Azure Blob Storage;
+// cualquier otro valor (o ausencia) cae en almacenamiento local (desarrollo).
+var storageProvider = builder.Configuration["Storage:Provider"];
+if (string.Equals(storageProvider, "AzureBlob", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IStorageProvider, AzureBlobStorageProvider>();
+}
+else
+{
+    builder.Services.AddScoped<IStorageProvider, LocalStorageProvider>();
+}
 builder.Services.AddScoped<IImagenService, ImagenService>();
 
 builder.Services.AddSignalR();
