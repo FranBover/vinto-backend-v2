@@ -198,7 +198,10 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                       "http://localhost:5173",
-                      "https://vinto-frontend-dev-ffbbb4e2fzcfd5h9.centralus-01.azurewebsites.net")
+                      "https://vinto-frontend-dev-ffbbb4e2fzcfd5h9.centralus-01.azurewebsites.net",
+                      "https://purple-dune-08cbe830f.7.azurestaticapps.net",
+                      "https://vintoapp.com",
+                      "https://www.vintoapp.com")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials(); // requerido por SignalR
